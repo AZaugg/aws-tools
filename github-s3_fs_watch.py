@@ -14,7 +14,7 @@ Python libs
 Linux:
  - Kernel 2.6.13+
 
-Supported iNotify events    
+Supported iNotify events
  - IN_CREATE
  - IN_CLOSE_WRITE
 '''
@@ -24,7 +24,7 @@ import sys
 import boto.s3
 from time import sleep
 from boto.s3.key import Key
-#-----------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # GLobal Vars #
 IAM_PROFILE = True
 S3_BUCKET = ""
@@ -32,7 +32,7 @@ WATCHED_PATH = ""
 
 # If IAM role set to False
 REGION_NAME = "us-west-1"
-#-----------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 def get_s3_connection():
     '''Return a connection object to S3 buckets'''
     if IAM_PROFILE:
@@ -40,23 +40,24 @@ def get_s3_connection():
     else:
         return boto.s3.connect_to_region(REGION_NAME)
 
-#-----------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 def get_s3_bucket(s3_connection):
     ''' Return a s3 bucket'''
     return s3_connection.get_bucket(S3_BUCKET)
 
-#-----------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 class Events(pyinotify.ProcessEvent):
     '''Events class, handle all supported events'''
     def __init__(self):
         pass
 
-    def process_IN_CREATE(self, event):
+    def process_IN_CREATE(self, event): # pylint: disable=R0201,C0103
+        '''On create event'''
         # TODO: On folder creation, create stub in S3'''
         if os.path.isdir(event.pathname):
             pass
-                
-    def process_IN_CLOSE_WRITE(self, event):
+
+    def process_IN_CLOSE_WRITE(self, event): # pylint: disable=R0201,C0103
         '''Upload file on CLOSE_WRITE event to S3'''
         filename = event.pathname.replace(WATCHED_PATH, '/')
 
@@ -80,7 +81,7 @@ class Events(pyinotify.ProcessEvent):
 
         # TODO: Check and ensure that file has been uploaded S3
 
-#-----------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 def main():
     '''Launch Notifier and start watching'''
 
@@ -100,12 +101,10 @@ def main():
         if notifier.check_events():
             notifier.read_events()
 
-#-----------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 if __name__ == "__main__":
-    '''
-    On program load, call main, as we are in an infinite loop, look for
-    SIGINT and catch, to ensure a clean exit
-    '''
+    # On program load, call main, as we are in an infinite loop, look for
+    # SIGINT and catch, to ensure a clean exit
     try:
         main()
     except KeyboardInterrupt:
