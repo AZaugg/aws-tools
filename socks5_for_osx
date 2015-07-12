@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# A girlfriend script to automate the starting of an EC2 instance
+# and setting up a SOCKs5 proxy to EC2 instane in the US of states
+# setting mac network settings to point to this newly created
+# socks 5 server
+
+# TODO: Use tagsto find server that we want to start and stop
+# TODO: Remove hard coded values
+# TODO: Check and ensure that SSH tunnel has been established
+
+INSTANCE_ID=<INSTANCEID>
+
+disable_socks()
+{
+    networksetup -setsocksfirewallproxystate Wi-Fi off
+    echo "Disable SOCKS5 proxy"
+    aws ec2 stop-instances --instance-ids "${INSTANCE_ID}"  --region us-west-2
+}
+trap disable_socks INT
+
+echo "Starting Ec2 instance"
+aws ec2 start-instances --instance-ids  "${INSTANCE_ID}" --region us-west-2
+sleep 30
+
+while true ;
+do
+    echo "looking for public IP"
+    public=$(aws ec2 describe-instances --query 'Reservations[].Instances[].PublicDnsName' --region us-west-2 --instance-ids "${INSTANCE_ID}" |tr -d '"[]\n ')
+    echo "${public}"
+
+    if [[ ! public -eq "" ]]; then
+        break
+    fi
+
+    sleep 10
+done
+
+echo "Public IP address is ${public}"
+
+networksetup -setsocksfirewallproxy Wi-Fi 127.0.0.1 1234
+networksetup -setsocksfirewallproxystate Wi-Fi on
+
+echo "Enabling SOCKS 5 proxy"
+echo "Setting up tunnel"
+
+ssh -i ~/.ssh/key -D 1234  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -N ec2-user@"${public}"
